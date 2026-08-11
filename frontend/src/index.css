@@ -1,0 +1,393 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Fonts — IBM Plex Sans (UI/body), IBM Plex Mono (numbers/tickers/tables),
+   Fraunces (client-facing report view only: client name + headline value).
+   Per 04_UIUX_Design_Brief.md — no Inter/Poppins/generic sans anywhere. */
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource-variable/fraunces";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Wealth Advisor Copilot — design tokens
+   Values below are computed-style extractions taken directly from the
+   live-rendered mockup (design mockup/Portfolio_Advisor_Assistant_New.html)
+   in both light and dark mode — not the design brief's rounded hex list,
+   which only gives a flat palette without saying which tone maps to which
+   semantic role.
+   ============================================================ */
+
+/* Raw brand-color scale, constant across light/dark. Only the
+   *semantic* role tokens further down (--primary, --accent, etc.)
+   pick a different swatch from this scale per theme.
+   Values below are computed-style extractions taken directly from the
+   live-rendered mockup (design mockup/Portfolio_Advisor_Assistant_New.html),
+   via getComputedStyle on its --ind/--warn/--pos/--neg CSS custom
+   properties in both themes — not the design brief's rounded hex list. */
+:root {
+  --palette-forest-1: #2f5d46; /* --ind (light) */
+  --palette-forest-2: #2f6b45; /* --pos (light) */
+  --palette-forest-3: #7ba98b; /* --ind (dark) */
+  --palette-forest-4: #7cc49a; /* --pos (dark) */
+
+  --palette-terracotta-1: #96591a; /* --warn (light) */
+  --palette-terracotta-2: #d9a05b; /* --warn (dark) */
+  --palette-terracotta-3: #d9a05b;
+  --palette-terracotta-4: #e08d7e; /* --neg (dark) */
+  --palette-terracotta-5: #d3a32f;
+
+  --palette-alert: #9b3b2e; /* --neg (light) */
+}
+
+@theme inline {
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-serif: "Fraunces Variable", "Fraunces", serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-2: var(--muted-2);
+  --color-muted-3: var(--muted-3);
+  --color-muted-4: var(--muted-4);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  /* Mockup's --pos: a distinct "gain" green, separate from --primary/--ind.
+     Used specifically for positive dollar figures (e.g. "+$486,173"),
+     never for nav/brand accents — those stay --primary. */
+  --color-positive: var(--positive);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  /* Documented floor: nothing in the UI should go below 11px except an
+     optional copyright/legal footer line — that line is the only intended
+     use of text-2xs. */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.4;
+}
+
+:root {
+  /* Every value in this block is a literal getComputedStyle() extraction
+     from the live mockup (design mockup/Portfolio_Advisor_Assistant_New.html),
+     not the design brief's rounded hex list — see PR discussion: the brief
+     lists tones without specifying which maps to which role, and a prior
+     build guessed wrong (e.g. --card was darker than --background, backwards
+     from the mockup's actual --bg/--card relationship). */
+  --background: #f2eee4; /* mockup --bg */
+  --foreground: #241f1a; /* mockup --fg */
+
+  --card: #faf8f3; /* mockup --card — lighter than --background, not darker */
+  --card-foreground: #241f1a;
+  --popover: #faf8f3;
+  --popover-foreground: #241f1a;
+
+  --primary: var(--palette-forest-1); /* mockup --ind */
+  --primary-foreground: #faf8f3; /* mockup --indf */
+
+  --secondary: var(--palette-terracotta-1); /* mockup --warn */
+  --secondary-foreground: #faf8f3;
+
+  --positive: var(--palette-forest-2); /* mockup --pos — distinct from --ind */
+  --positive-foreground: #faf8f3;
+
+  --muted: #ede8dc; /* mockup --muted */
+  --muted-foreground: #5c5348; /* mockup --fg2 */
+  --muted-2: #9a9184;
+  --muted-3: #756c61; /* mockup --fg3 */
+  --muted-4: #4a423a;
+
+  --accent: #e4ebe4; /* mockup --soft — active nav-item / selected-option bg */
+  --accent-foreground: var(--palette-forest-1); /* mockup --ind text on --soft */
+
+  --destructive: var(--palette-alert); /* mockup --neg */
+  --destructive-foreground: #faf8f3;
+
+  --border: #e0d9cb; /* mockup --border */
+  --border-strong: #cfc7b8;
+  --input: #e0d9cb;
+  --ring: rgba(47, 93, 70, 0.2); /* mockup --ring — translucent, not solid */
+
+  --grid-line: #e6e0d3; /* mockup --grid — chart gridlines */
+  --shadow-card: 0 1px 2px rgba(36, 31, 26, 0.07); /* mockup --sh */
+  --shadow-elevated: 0 8px 30px rgba(36, 31, 26, 0.14); /* mockup --sh2 — popovers/tooltips */
+
+  --chart-1: var(--palette-forest-1);
+  --chart-2: var(--palette-terracotta-1);
+  --chart-3: var(--palette-forest-2);
+  --chart-4: var(--palette-terracotta-3);
+  --chart-5: #756c61;
+
+  --sidebar: var(--card); /* mockup's aside literally uses background: var(--card) */
+  --sidebar-foreground: #241f1a;
+  --sidebar-primary: var(--palette-forest-1);
+  --sidebar-primary-foreground: #faf8f3;
+  --sidebar-accent: #e4ebe4;
+  --sidebar-accent-foreground: var(--palette-forest-1);
+  --sidebar-border: #e0d9cb;
+  --sidebar-ring: rgba(47, 93, 70, 0.2);
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  /* Same rule as :root above — literal extractions from the mockup with
+     its own theme toggle switched to dark, not an extrapolation. */
+  --background: #16130f; /* mockup --bg */
+  --foreground: #f4efe6; /* mockup --fg */
+
+  --card: #1d1915; /* mockup --card */
+  --card-foreground: #f4efe6;
+  --popover: #1d1915;
+  --popover-foreground: #f4efe6;
+
+  --primary: var(--palette-forest-3); /* mockup --ind */
+  --primary-foreground: #14110e; /* mockup --indf */
+
+  --secondary: var(--palette-terracotta-2); /* mockup --warn */
+  --secondary-foreground: #14110e;
+
+  --positive: var(--palette-forest-4); /* mockup --pos */
+  --positive-foreground: #14110e;
+
+  --muted: #262019; /* mockup --muted */
+  --muted-foreground: #b2a797; /* mockup --fg2 */
+  --muted-2: #8c8275;
+  --muted-3: #867b6c; /* mockup --fg3 */
+  --muted-4: #6b6255;
+
+  --accent: #22302a; /* mockup --soft */
+  --accent-foreground: var(--palette-forest-3);
+
+  --destructive: var(--palette-terracotta-4); /* mockup --neg */
+  --destructive-foreground: #f4efe6;
+
+  --border: #332c24; /* mockup --border */
+  --border-strong: #4a423a;
+  --input: #332c24;
+  --ring: rgba(123, 169, 139, 0.32); /* mockup --ring */
+
+  --grid-line: #292219; /* mockup --grid */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5); /* mockup --sh */
+  /* mockup's dark --sh2 wasn't extractable (its static export doesn't
+     respond to toggling the .dark class) — scaled up from --shadow-card's
+     dark value the same way light --sh2 scales up from light --sh. */
+  --shadow-elevated: 0 8px 30px rgba(0, 0, 0, 0.6);
+
+  --chart-1: var(--palette-forest-3);
+  --chart-2: var(--palette-terracotta-2);
+  --chart-3: var(--palette-forest-4);
+  --chart-4: var(--palette-terracotta-3);
+  --chart-5: #8c8275;
+
+  --sidebar: var(--card);
+  --sidebar-foreground: #f4efe6;
+  --sidebar-primary: var(--palette-forest-3);
+  --sidebar-primary-foreground: #14110e;
+  --sidebar-accent: #22302a;
+  --sidebar-accent-foreground: var(--palette-forest-3);
+  --sidebar-border: #332c24;
+  --sidebar-ring: rgba(123, 169, 139, 0.32);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    /* Design-brief type floor: 12px preferred site-wide, 11px is the
+       absolute minimum (reserved for the copyright/legal footer line). */
+    font-size: 12px;
+    line-height: 1.5;
+    height: 100%;
+    overflow: hidden;
+  }
+}
+
+/* Client-facing report "paper" — the mockup renders this document with
+   literal hardcoded colors (rgb(253,251,246) background etc.), never
+   swapping for dark mode, since it's meant to read as an always-light
+   printed page regardless of the advisor's current app theme. Rather than
+   fork every component that touches color, this class re-declares the same
+   custom properties every Tailwind color utility already resolves through,
+   scoped to this subtree — so existing components (charts, badges,
+   formatCurrency-driven text) render correctly as "paper" automatically,
+   even while the rest of the app is in dark mode. Values are the real
+   light-mode values already used elsewhere in this file / extracted from
+   the mockup's report view specifically. Was #fdfbf6 (a warm off-white) —
+   changed to pure #ffffff: against the app shell's own warmer
+   --background (#f2eee4), #fdfbf6 read as "white enough" on screen, but a
+   printed/exported PDF has no warmer surrounding chrome for contrast, so
+   the exact same color read as visibly cream there. Pure white removes the
+   ambiguity in both places rather than relying on a contrast effect that
+   only exists on screen. */
+.report-paper {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #241f1a;
+  --card: #ffffff;
+  --card-foreground: #241f1a;
+  --primary: #2f5d46;
+  --primary-foreground: #ffffff;
+  --secondary: #96591a;
+  --secondary-foreground: #ffffff;
+  --positive: #2f6b45;
+  --positive-foreground: #ffffff;
+  --muted: #ede8dc;
+  --muted-foreground: #5c5348;
+  --muted-3: #756c61;
+  --accent: #e4ebe4;
+  --accent-foreground: #2f5d46;
+  --destructive: #9b3b2e;
+  --destructive-foreground: #ffffff;
+  --border: #e0d9cb;
+  --grid-line: #e6e0d3;
+  --shadow-card: 0 1px 2px rgba(36, 31, 26, 0.07);
+  --shadow-elevated: 0 8px 30px rgba(36, 31, 26, 0.14);
+}
+
+/* Print export for the client report — window.print() with no PDF library.
+   @page's margin is the ONLY thing that gives every physical printed page
+   its visual inset (60px/64px, matching the on-screen card's own padding,
+   converted to inches): a single continuous document's own CSS padding
+   only applies once at the very top and bottom of the whole flow, not on
+   every page the browser breaks it into — @page margin is the one
+   mechanism CSS Paged Media gives us that repeats correctly on every page.
+   The color-adjust declarations are the load-bearing part: browsers strip
+   background colors/badges/accents from printed output by default unless
+   told not to — this is copied verbatim from the mockup's own @media print
+   block, which already had this exact fix in place. */
+@page {
+  size: letter;
+  margin: 0.625in 0.667in;
+}
+
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: none !important;
+  }
+
+  /* Every one of these must go to overflow:visible/height:auto for print,
+     not just [data-app-shell] itself — a fixed-height ancestor with
+     overflow-hidden silently CLIPS (deletes, not just resizes) any real
+     content taller than its on-screen scroll viewport. This bit us for
+     real: report-shell-inner (the untagged flex-column wrapper between the
+     sidebar row and the header+main column) had its own overflow-hidden
+     that neither of these two rules used to reach, and a multi-page report
+     printed via a real print dialog silently lost every block past
+     whatever fit in one screen-height's worth of content. */
+  [data-app-shell],
+  [data-app-shell-inner],
+  [data-app-main] {
+    position: static !important;
+    inset: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  [data-app-sidebar],
+  [data-app-header],
+  [data-no-print] {
+    display: none !important;
+  }
+
+  [data-app-main] {
+    padding: 0 !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  .report-section {
+    break-inside: avoid;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* ============================================================
+   Micro-interactions — transition/timing polish only. No new colors:
+   the flash below reuses --accent (already themed light/dark) rather
+   than a hardcoded value, so it's automatically correct in both.
+   ============================================================ */
+
+/* One-shot highlight when a number updates in place (e.g. after a
+   scenario runs) — pair with a `key` prop tied to the new value so React
+   remounts the element and the animation replays on every change. */
+@keyframes flash-highlight {
+  from {
+    background-color: var(--accent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.animate-flash-highlight {
+  animation: flash-highlight 280ms ease-out;
+}
+
+/* Standard accessibility guard: every transition/animation added above
+   (and every hover/press transform below) collapses to effectively
+   instant for users who've asked for reduced motion at the OS level. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

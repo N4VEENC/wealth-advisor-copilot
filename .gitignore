@@ -1,0 +1,21 @@
+node_modules/
+backend/venv/
+**/__pycache__/
+*.pyc
+
+.env
+.env.*
+!.env.example
+
+# Real client data (PII) and stale pre-SQLite artifacts — the live DB lives
+# outside the repo at %LOCALAPPDATA%\WealthAdvisorCopilot\wealth_advisor.db
+# (see backend/database.py). Nothing under backend/data/ is source of truth.
+backend/data/
+backend/data_backup_pre_sqlite_20260810/
+
+# Vite/build output
+frontend/dist/
+frontend/node_modules/
+
+# Claude Code's own local tooling config/cache, not app source
+.claude/
