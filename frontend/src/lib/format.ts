@@ -80,20 +80,20 @@ export function formatSignedCurrency(amount: number, currency: Currency, rate: n
 
 // Matches a USD-formatted dollar mention as written by either the
 // deterministic backend (recommendation_matcher.py's f"${x:,.2f}" notes) or
-// Gemini's prose (it's only ever given USD figures, so it only ever writes
+// the AI's prose (it's only ever given USD figures, so it only ever writes
 // USD-style mentions: "$1,234.56", "$1,234", "-$67.12"). Requires the "$" so
 // it can never mistake a bare number or a percentage for a dollar figure.
 const USD_MENTION_PATTERN = /-?\$[\d,]+(?:\.\d+)?/g
 
 /**
  * Rewrites every embedded USD dollar mention in already-generated text (a
- * deterministic trade note, or Gemini's narrative/Cards prose — both are
- * always written against raw USD figures, see gemini_client.py) into the
+ * deterministic trade note, or the AI's narrative/Cards prose — both are
+ * always written against raw USD figures, see groq_client.py) into the
  * selected display currency. This is the deliberate alternative to
- * re-generating that text per currency: Gemini is never called again just
+ * re-generating that text per currency: the AI is never called again just
  * because the advisor switched currencies (it has a scarce daily free-tier
  * quota, and the switch must be instant, not a network round-trip), and a
- * deterministic note was never AI text to begin with. Every number Gemini
+ * deterministic note was never AI text to begin with. Every number the AI
  * or the backend already decided to mention is preserved exactly — this
  * only ever reformats a number already present in the text, never invents
  * or drops one.

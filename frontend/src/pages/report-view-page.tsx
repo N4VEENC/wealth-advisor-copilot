@@ -142,7 +142,7 @@ function RecommendationRow({ rec, index, convertMentionsInText }: {
         {/* rec.note already includes the tax-lot gain phrase for SELLs
             (recommendation_matcher.py's f"${x:,.2f}" strings) — always real
             USD text embedded directly in the string, so it goes through
-            convertMentionsInText the same as any Gemini prose would. */}
+            convertMentionsInText the same as any AI-generated prose would. */}
         <p className="m-0 text-[13.5px] leading-[1.62] text-muted-foreground">{convertMentionsInText(rec.note)}</p>
       </div>
     </div>
@@ -298,13 +298,14 @@ function buildReportBlocks(report: ReportSummary, client: ClientRecord, fmt: Rep
   })
 
   if (c.allocation) {
+    const allocation = c.allocation
     blocks.push({
       key: "allocation",
       className: "mt-[38px]",
       node: (
         <div className="report-section grid grid-cols-[230px_1fr] items-center gap-9">
           <AllocationDonut
-            fractions={c.allocation.current}
+            fractions={allocation.current}
             centerValue={totalValue ?? 0}
             accountCount={accountCount}
             formatCurrency={formatCurrency}
@@ -317,7 +318,7 @@ function buildReportBlocks(report: ReportSummary, client: ClientRecord, fmt: Rep
                   <span aria-hidden="true" className="block h-[11px] w-[11px] shrink-0 rounded-[3px]" style={{ background: DONUT_COLOR[bucket] }} />
                   <span className="flex-1 text-[14px] text-muted-foreground">{BUCKET_LABEL[bucket]}</span>
                   <span className="font-mono text-[14px] font-semibold text-foreground">
-                    {formatPercent(c.allocation.current[bucket], 0)}
+                    {formatPercent(allocation.current[bucket], 0)}
                   </span>
                 </div>
               ))}

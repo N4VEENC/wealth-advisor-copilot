@@ -270,9 +270,18 @@ export function Header({
 
   // Only ever shows the optional picker when there's something to pick —
   // a client with zero flagged notes generates exactly like it always did,
-  // no extra step, no dialog.
-  function handleGenerateReportClick() {
-    if (flaggedNotes.length > 0) {
+  // no extra step, no dialog. Re-fetches flagged notes fresh on every click
+  // rather than trusting the page-load `flaggedNotes` state: an advisor can
+  // flag a new chat message at any point while sitting on this same
+  // Dashboard, and that action never changes clientId, so the effect above
+  // would never re-run and this button would keep offering a stale list.
+  async function handleGenerateReportClick() {
+    if (!clientId) return
+    const fresh = await getFlaggedMessages(clientId)
+      .then((res) => res.flagged_messages)
+      .catch(() => flaggedNotes)
+    setFlaggedNotes(fresh)
+    if (fresh.length > 0) {
       setSelectedNoteIds(new Set())
       setShowNotesPicker(true)
     } else {
@@ -298,7 +307,7 @@ export function Header({
       await postGenerateReport(clientId, flaggedMessageIds)
       navigate(`/clients/${clientId}/reports`)
     } catch (err) {
-      // The one real failure mode here is Gemini's narrative call — reports.py
+      // The one real failure mode here is the AI's narrative call — reports.py
       // hard-fails without a narrative (unlike the Dashboard's /insights,
       // which tolerates a missing one), so this is a real, expected error
       // path, not a bug to silently swallow.

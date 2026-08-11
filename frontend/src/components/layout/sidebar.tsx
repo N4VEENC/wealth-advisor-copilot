@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { NavLink, useMatch } from "react-router-dom"
+import { NavLink, useLocation, useMatch } from "react-router-dom"
 
 import { getClient, getClients, getHoldingsSourceFileUrl, getReports, type ClientRecord } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -81,6 +81,7 @@ function SectionLabel({ children, withTopBorder }: { children: ReactNode; withTo
 export function Sidebar() {
   const clientMatch = useMatch("/clients/:clientId/*")
   const clientId = clientMatch?.params.clientId
+  const location = useLocation()
   const [client, setClient] = useState<ClientRecord | null>(null)
   const [clientCount, setClientCount] = useState<number | null>(null)
   const [reportCount, setReportCount] = useState<number | null>(null)
@@ -88,16 +89,32 @@ export function Sidebar() {
   useEffect(() => {
     let cancelled = false
     setClient(null)
-    setReportCount(null)
     getClients().then((r) => !cancelled && setClientCount(r.clients.length))
     if (clientId) {
       getClient(clientId).then((c) => !cancelled && setClient(c))
-      getReports(clientId).then((r) => !cancelled && setReportCount(r.reports.length))
     }
     return () => {
       cancelled = true
     }
   }, [clientId])
+
+  // Deliberately re-runs on every navigation within the same client (not
+  // just when clientId itself changes) — generating a report navigates from
+  // the Dashboard to this same client's Reports tab without changing
+  // clientId, so the count would otherwise stay stale until a full refresh.
+  // No reset-to-null here (unlike the effect above): the old count stays on
+  // screen until the fresh one arrives, so this refresh never flickers.
+  useEffect(() => {
+    let cancelled = false
+    if (clientId) {
+      getReports(clientId).then((r) => !cancelled && setReportCount(r.reports.length))
+    } else {
+      setReportCount(null)
+    }
+    return () => {
+      cancelled = true
+    }
+  }, [clientId, location.pathname])
 
   const importedLabel = client
     ? new Date(client.uploaded_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })

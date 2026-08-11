@@ -120,7 +120,7 @@ Single implicit role: advisor (full read/write access to all local data). No per
 
 ## Sensitive Fields
 - No real financial credentials, account numbers, SSNs, or payment data are ever stored — this app only stores fictional/demo holdings data (ticker, quantity, cost basis) and never connects to a real custodian
-- API keys (`GEMINI_API_KEY`, `FINNHUB_API_KEY`) live only in backend `.env`, never in any JSON data file, never sent to the frontend
+- API keys (`GROQ_API_KEY`, `FINNHUB_API_KEY`) live only in backend `.env`, never in any JSON data file, never sent to the frontend
 
 ## File/Media Storage
 - No file uploads are persisted as raw files after parsing — an uploaded Excel/CSV is read in-memory by `pandas`, normalized, and only the resulting structured JSON is written to disk. The original uploaded file itself is not retained.
@@ -136,7 +136,7 @@ None in this version — all actions are synchronous request/response (upload �
 - `GET /clients/{id}/market-data` — fetch live prices for that client's holdings
 - `GET /clients/{id}/analysis` — deterministic optimizer output (scores, allocation drift)
 - `POST /clients/{id}/scenario` — run a scenario simulation, return projected impact
-- `POST /clients/{id}/insights` — Gemini orchestration call, returns plain-language narrative (grounded in the analysis output above)
+- `POST /clients/{id}/insights` — Groq orchestration call, returns plain-language narrative (grounded in the analysis output above)
 - `POST /clients/{id}/reports` — generate a new report (draft)
 - `PATCH /reports/{id}/approve` — mark a report approved (human-in-the-loop gate)
 - `GET /reports/{id}` — fetch a report (advisor or client view)

@@ -1,5 +1,4 @@
-"""AI narration layer — narrates already-calculated numbers. Runs on Groq
-(not actually Gemini — see naming note below).
+"""AI narration layer — narrates already-calculated numbers. Runs on Groq.
 
 Hard constraint (TRD/PRD): the model must never generate, calculate, or
 invent any financial number. Every figure in its output must trace back to
@@ -10,17 +9,6 @@ that data and returns the model's plain-language narrative — it never asks
 it to "estimate," "calculate," or "project" anything itself. This rule is a
 prompting discipline, not something tied to any specific provider, which is
 exactly why swapping providers below didn't require touching it.
-
-Naming note: this module/file is still named for Gemini, and the exception
-class below is still `GeminiError`, even though the actual calls now go to
-Groq's API. Swapped 2026-08-06 after Google deprecated the previously-pinned
-gemini-2.5-flash for new API keys/projects (a live 404 "no longer available
-to new users") on top of the free tier's persistently tight quota (20
-requests/day on some models) — recurring friction unrelated to anything in
-this app's own code. Left the module/class names as-is to keep this a
-narrow, low-risk swap rather than a rename sweeping every file that imports
-`gemini_client` or references "Gemini" in a comment; rename later if it's
-worth the touched-files diff.
 """
 from __future__ import annotations
 
@@ -81,9 +69,8 @@ def _cached(fn_name: str, payload: Any, compute: Callable[[], T]) -> T:
 
 # llama-3.3-70b-versatile: a solid, well-tested instruction-follower on
 # Groq's free tier, confirmed live against this app's actual key
-# (2026-08-06) for both plain narration and JSON-object mode. Groq also
-# rotates/retires hosted models over time (same category of risk Gemini
-# just demonstrated) — if this one goes away, check
+# (2026-08-06) for both plain narration and JSON-object mode. Groq
+# rotates/retires hosted models over time — if this one goes away, check
 # https://console.groq.com/docs/models for what's currently served, or list
 # live via `GET https://api.groq.com/openai/v1/models` with the real key.
 MODEL_NAME = "llama-3.3-70b-versatile"
@@ -101,14 +88,14 @@ Strict rules, no exceptions:
 """
 
 
-class GeminiError(RuntimeError):
+class GroqError(RuntimeError):
     """Raised when the AI narration call can't be used (missing key, API failure, empty response)."""
 
 
 def _get_client() -> Groq:
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
-        raise GeminiError("GROQ_API_KEY is not set in backend/.env.")
+        raise GroqError("GROQ_API_KEY is not set in backend/.env.")
     return Groq(api_key=api_key)
 
 
@@ -167,10 +154,10 @@ def generate_narrative(
         try:
             text = _chat(client, _SYSTEM_INSTRUCTION, prompt)
         except Exception as exc:  # the SDK raises several distinct exception types
-            raise GeminiError(f"Gemini request failed: {exc}") from exc
+            raise GroqError(f"Groq request failed: {exc}") from exc
 
         if not text:
-            raise GeminiError("Gemini returned no narrative text.")
+            raise GroqError("Groq returned no narrative text.")
         return text
 
     return _cached("generate_narrative", payload, compute)
@@ -215,19 +202,19 @@ def generate_structured_insights(facts: list[dict[str, Any]]) -> list[dict[str, 
         try:
             text = _chat(client, _STRUCTURED_SYSTEM_INSTRUCTION, prompt, json_mode=True)
         except Exception as exc:  # the SDK raises several distinct exception types
-            raise GeminiError(f"Gemini request failed: {exc}") from exc
+            raise GroqError(f"Groq request failed: {exc}") from exc
 
         if not text:
-            raise GeminiError("Gemini returned no structured insight text.")
+            raise GroqError("Groq returned no structured insight text.")
 
         try:
             parsed = json.loads(text)
         except json.JSONDecodeError as exc:
-            raise GeminiError(f"Gemini returned non-JSON output: {exc}") from exc
+            raise GroqError(f"Groq returned non-JSON output: {exc}") from exc
 
         results = parsed.get("results") if isinstance(parsed, dict) else None
         if not isinstance(results, list):
-            raise GeminiError('Gemini\'s structured insight response had no "results" array.')
+            raise GroqError('Groq\'s structured insight response had no "results" array.')
 
         narrations: dict[str, dict[str, str]] = {}
         for item in results:
@@ -284,10 +271,10 @@ def classify_scenario(free_text: str, scenarios: list[dict[str, str]]) -> str | 
         try:
             text = _chat(client, _SCENARIO_CLASSIFIER_SYSTEM_INSTRUCTION, prompt)
         except Exception as exc:  # the SDK raises several distinct exception types
-            raise GeminiError(f"Gemini scenario classification failed: {exc}") from exc
+            raise GroqError(f"Groq scenario classification failed: {exc}") from exc
 
         if not text:
-            raise GeminiError("Gemini returned no scenario classification text.")
+            raise GroqError("Groq returned no scenario classification text.")
         return text.strip().strip('"').strip("'").strip(".").lower()
 
     candidate = _cached("classify_scenario", payload, compute)
@@ -345,11 +332,11 @@ def narrate_compliance_flags(flags: list[dict[str, Any]]) -> list[dict[str, Any]
             )
             text = _chat(client, _COMPLIANCE_NARRATION_SYSTEM_INSTRUCTION, prompt, json_mode=True)
             if not text:
-                raise GeminiError("Gemini returned no compliance narration text.")
+                raise GroqError("Groq returned no compliance narration text.")
             parsed = json.loads(text)
             results = parsed.get("results") if isinstance(parsed, dict) else None
             if not isinstance(results, list):
-                raise GeminiError('Gemini\'s compliance narration response had no "results" array.')
+                raise GroqError('Groq\'s compliance narration response had no "results" array.')
             result: dict[str, str] = {}
             for item in results:
                 if isinstance(item, dict) and "id" in item and "narrative" in item:

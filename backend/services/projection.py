@@ -20,7 +20,7 @@ This is illustrative modeling for a demo, not real financial forecasting:
   beyond simple annual compounding).
 - No AI is involved anywhere in this file — same architecture rule as
   optimizer.py / scenario_simulator.py / recommendation_matcher.py: this is
-  pure arithmetic (here, pure arithmetic over random draws), and Gemini's
+  pure arithmetic (here, pure arithmetic over random draws), and the AI's
   role (if this is ever narrated) would be to describe the output, never to
   generate or adjust it.
 """

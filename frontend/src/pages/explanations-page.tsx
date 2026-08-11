@@ -326,9 +326,9 @@ const EXTENDED_TERMS: Term[] = [
     abbr: "SCEN·LIB",
     category: "Modeling",
     description:
-      "This app doesn't generate scenario shocks on the fly. Typing free text or clicking a preset chip matches your input to one of 34 pre-built, hand-specified shock archetypes (rate moves, sector shocks, currency shocks, macro regimes) — each with its own fixed equities/fixed-income/sector impact percentages already baked in.",
-    formula: "resolve: exact id/label match → keyword substring match → Gemini classifier (existing id only) → error if none match",
-    note: 'backend/services/scenario_simulator.py (34 entries in SCENARIOS) + services/gemini_client.py\'s classify_scenario. Gemini\'s only role is picking which existing archetype best fits free text — it never invents a magnitude, and routers/scenarios.py re-validates the returned id is a real one before trusting it.',
+      "This app doesn't generate scenario shocks on the fly. Typing free text or clicking a preset chip matches your input to one of 44 pre-built, hand-specified shock archetypes (rate moves, sector shocks, currency shocks, macro regimes) — each with its own fixed equities/fixed-income/sector impact percentages already baked in.",
+    formula: "resolve: exact id/label match → keyword substring match → AI classifier (existing id only) → error if none match",
+    note: "backend/services/scenario_simulator.py (44 entries in SCENARIOS) + services/groq_client.py's classify_scenario. The AI's only role is picking which existing archetype best fits free text — it never invents a magnitude, and routers/scenarios.py re-validates the returned id is a real one before trusting it.",
   },
   {
     term: "Currency display conversion",
@@ -336,8 +336,8 @@ const EXTENDED_TERMS: Term[] = [
     category: "Accounts",
     description:
       "Every dollar figure in this app is computed and stored in USD. Switching the currency selector doesn't recompute anything — it multiplies that same real USD figure by a live exchange rate at the moment of display, everywhere at once.",
-    formula: "displayed value = USD amount × rate(currency) — rate labeled live | cached-fresh | cached-stale | fallback",
-    note: "backend/services/exchange_rate_service.py (open.er-api.com, 1-hour cache) + frontend/src/components/providers/currency-provider.tsx. Falls back to the last successfully-fetched rate if the live source fails, then to a documented static table only if no live rate was ever fetched — never silently shown as current when it isn't.",
+    formula: "displayed value = USD amount × rate(currency) — rate labeled live | live-frankfurter | cached-fresh | cached-stale | fallback",
+    note: "backend/services/exchange_rate_service.py, 1-hour cache. Four-tier resilience: open.er-api.com (primary) → Frankfurter/api.frankfurter.app (fallback live source, ECB reference rates) → the last successfully-fetched rate served stale → a documented static table, only if no live rate has ever once been fetched. Every response says which tier it actually used, never silently shown as current when it isn't.",
   },
   {
     term: "Stale-price fallback",
@@ -356,6 +356,42 @@ const EXTENDED_TERMS: Term[] = [
       "Deleting a client whose reports still exist is blocked by default — this app has no general cascading-delete story for report/audit data, so the safe default is to refuse, not guess. A force override exists for exactly this case, but it is never automatic: it requires a second, explicit confirmation naming exactly how many reports will also be destroyed before it deletes those reports and then the client.",
     formula: "DELETE /clients/{id} → 409 if reports exist; DELETE /clients/{id}?force=true → deletes the referencing reports, then the client",
     note: "backend/routers/clients.py's delete_client + services/report_store.py's delete_report. The no-force default is unconditional and can't be bypassed accidentally — force=true is only ever sent after the advisor explicitly confirms the exact report count shown to them.",
+  },
+  {
+    term: "Retirement goal amount resolution",
+    abbr: "GOAL·SRC",
+    category: "Modeling",
+    description:
+      "The retirement funding probability above needs a target dollar figure. If the advisor has entered a real target retirement amount for this client, that exact number is used. If not, this app doesn't leave the goal blank or guess a round number — it deterministically projects the current portfolio value forward to the goal year at the target allocation's expected blended return, and uses that projected figure as a stand-in goal.",
+    formula: "advisor-provided: goal = target_retirement_amount. estimated: goal = compound(current value, target-allocation blended rate, years to goal_year) + contributions",
+    note: 'backend/services/projection.py\'s resolve_goal_amount + run_monte_carlo_projection. Every caller (the /projection endpoint, report generation, and AI Chat\'s get_projection tool) resolves through this one function, and the response always carries goal_amount_source: "advisor_provided" | "estimated" so the UI can label which kind of number is being shown — never presenting an estimate as if the advisor had entered it.',
+  },
+  {
+    term: "Client data storage",
+    abbr: "DB·SQLITE",
+    category: "Accounts",
+    description:
+      "Every client, holding lot, report, chat message, and audit-log entry lives in one real SQLite database (via SQLAlchemy), not per-client JSON files. The database file itself is deliberately kept outside this project's own folder.",
+    formula: "engine = create_engine(\"sqlite:///{DB_PATH}\") — DB_PATH = %LOCALAPPDATA%\\WealthAdvisorCopilot\\wealth_advisor.db (Windows) or ~/.wealth_advisor_copilot/ elsewhere",
+    note: "backend/database.py + models.py. Moved out of the project folder specifically because a cloud-synced project directory (e.g. OneDrive) holds an OS-level lock on a frequently-written file, which collided with SQLite's own locking and caused real \"database is locked\" errors — confirmed independently of this app's own code before the move. Open DB_PATH directly in DB Browser for SQLite to inspect it.",
+  },
+  {
+    term: "AI Chat: Verified vs. Exploratory mode",
+    abbr: "CHAT·MODE",
+    category: "Modeling",
+    description:
+      "Verified mode gives the AI 6 tools, each a thin wrapper around an already-existing deterministic function (analysis, recommendations, scenarios, compliance, sector exposure, projection) — it can only state a number that actually came back from a tool call, and says so plainly if none of the 6 can answer. Exploratory mode allows open-ended market/industry discussion and informed estimates, but the first message after switching into it captures a one-time real snapshot of the client's actual portfolio, which every later estimate in that conversation is still checked against.",
+    formula: "Verified: answer ⊆ {tool_call_result₁, ..., tool_call_result₆}, up to 4 tool-call rounds per turn. Exploratory: one-time real-data snapshot + free-form AI reasoning, always labeled \"Estimate — not a verified calculation\"",
+    note: "backend/services/chat_service.py. The two modes are a hard architectural split, not a prompting suggestion: Verified mode's tool-calling loop has no path to free-form text about this client's numbers, and Exploratory mode has no tool access at all — only its one captured context block plus open reasoning.",
+  },
+  {
+    term: "Flag for report reference",
+    abbr: "FLAG·NOTE",
+    category: "Accounts",
+    description:
+      "Any AI Chat message — verified or exploratory — can be flagged by the advisor as worth keeping. Flagged messages are listed on their own, separate from the live conversation, and can optionally be attached to a report the next time one is generated for that client, becoming a permanent, disclosed part of that report snapshot rather than a private chat log.",
+    formula: "POST /clients/{id}/chat/{message_id}/flag-for-report → GET /clients/{id}/chat/flagged → optional flagged_message_ids on POST /clients/{id}/reports",
+    note: 'backend/routers/chat.py + services/chat_service.py\'s flag_message_for_report/get_flagged_messages_by_ids, consumed by routers/reports.py. Attaching a note to a report is itself audit-logged as its own "report_advisor_notes_attached" entry — the one exception to report generation not otherwise writing to the audit log.',
   },
 ]
 

@@ -9,11 +9,11 @@ persist anything to the client's stored JSON — a scenario is a hypothetical
 
 Free-text resolution order: exact id/label match, then
 scenario_simulator's own non-AI keyword fallback, then — only if both of
-those fail — Gemini as a pure CLASSIFIER over the existing scenario list
-(services.gemini_client.classify_scenario). Gemini never invents a
+those fail — the AI as a pure CLASSIFIER over the existing scenario list
+(services.groq_client.classify_scenario). The AI never invents a
 magnitude or a new scenario here; it only ever picks which already-existing,
 already-computed archetype best matches the question, or says no match. If
-Gemini itself is unavailable (e.g. rate-limited), that's treated the same as
+the AI itself is unavailable (e.g. rate-limited), that's treated the same as
 no match rather than failing the whole request differently — the advisor
 still gets a clear "couldn't match" error either way.
 """

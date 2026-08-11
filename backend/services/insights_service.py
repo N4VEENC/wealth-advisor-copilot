@@ -1,5 +1,5 @@
 """Shared orchestration pipeline: load a client, fetch live prices, run the
-deterministic optimizer + recommendation matcher, and get Gemini's narration
+deterministic optimizer + recommendation matcher, and get the AI's narration
 of the result.
 
 Used by both POST /clients/{id}/insights (which additionally appends an
@@ -9,20 +9,23 @@ being duplicated per router.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from services import gemini_client, insight_facts, optimizer, recommendation_matcher, sector_classification
+from services import groq_client, insight_facts, optimizer, recommendation_matcher, sector_classification
 from services.client_store import load_client, load_strategy_for_risk_profile, save_client
 from services.market_data_service import fetch_prices_with_fallback
+
+logger = logging.getLogger(__name__)
 
 
 def compute_deterministic_analysis(client_id: str) -> dict[str, Any]:
     """The non-AI half of the pipeline: load a client, fetch live prices,
     run the optimizer + recommendation matcher, and persist the fetched
-    prices back onto the client record. No Gemini call happens here — split
+    prices back onto the client record. No AI call happens here — split
     out from compute_insights specifically so a caller that needs MORE than
-    one Gemini call for the same analysis (routers/reports.py needs both
+    one AI call for the same analysis (routers/reports.py needs both
     the narrative AND compliance-flag narration) can fire them concurrently
     instead of paying for two sequential network round-trips, since neither
     one depends on the other's output — both only depend on this function's
@@ -103,22 +106,27 @@ def compute_insights(client_id: str) -> dict[str, Any]:
     Raises (uncaught — callers translate these to HTTP responses):
     ClientNotFoundError, StrategyNotFoundError, MarketDataUnavailableError,
     ValueError (no holdings / no live price / zero portfolio value).
-    gemini_client.GeminiError is caught internally — see `narrative_error`.
+    groq_client.GroqError is caught internally — see `narrative_error`.
     """
     base = compute_deterministic_analysis(client_id)
 
-    # Per the App Flow doc's error-state requirement, a Gemini failure must
+    # Per the App Flow doc's error-state requirement, an AI failure must
     # never block the deterministic output — only the narrative itself goes
     # missing. Callers that require a narrative (e.g. client-facing report
     # generation) check `narrative_error` themselves and fail there instead.
     try:
-        narrative = gemini_client.generate_narrative(
+        narrative = groq_client.generate_narrative(
             analysis=base["analysis"], recommendations=base["recommendations"]
         )
         narrative_error = None
-    except gemini_client.GeminiError as exc:
+    except groq_client.GroqError as exc:
+        # The real exception (which can carry raw provider/HTTP detail) is
+        # logged here for debugging only — narrative_error is API-response
+        # data, so it stays generic rather than ever naming the provider or
+        # echoing raw error text.
+        logger.warning("AI narrative generation failed for %s: %s", client_id, exc)
         narrative = None
-        narrative_error = str(exc)
+        narrative_error = "AI narrative unavailable, please retry."
 
     return {**base, "narrative": narrative, "narrative_error": narrative_error}
 
@@ -126,19 +134,19 @@ def compute_insights(client_id: str) -> dict[str, Any]:
 def compute_structured_insights(client_id: str) -> dict[str, Any]:
     """Real, per-fact structured narration for the AI recommendations
     "Cards" view — see services/insight_facts.py for how each fact's numbers
-    are computed and services/gemini_client.py's generate_structured_insights
-    for how Gemini is only ever asked to write prose for numbers we already
-    picked. Severity and tag come from insight_facts.py, never from Gemini.
+    are computed and services/groq_client.py's generate_structured_insights
+    for how the AI is only ever asked to write prose for numbers we already
+    picked. Severity and tag come from insight_facts.py, never from the AI.
 
     Deliberately a separate, on-demand pipeline (not folded into
-    compute_insights/POST /insights) because it costs a second Gemini call —
+    compute_insights/POST /insights) because it costs a second AI call —
     the Cards tab is lazy-loaded by the frontend only when an advisor
-    actually opens it, not fetched on every dashboard load, given Gemini's
-    free-tier daily request quota.
+    actually opens it, not fetched on every dashboard load, given the AI
+    provider's free-tier daily request quota.
 
     Raises the same exceptions as compute_insights (ClientNotFoundError,
     StrategyNotFoundError, MarketDataUnavailableError, ValueError).
-    gemini_client.GeminiError is caught internally — see `insights_error`.
+    groq_client.GroqError is caught internally — see `insights_error`.
     """
     client = load_client(client_id)
 
@@ -191,13 +199,16 @@ def compute_structured_insights(client_id: str) -> dict[str, Any]:
     )
 
     try:
-        narrations = gemini_client.generate_structured_insights(facts)
+        narrations = groq_client.generate_structured_insights(facts)
         insights_error = None
-    except gemini_client.GeminiError as exc:
+    except groq_client.GroqError as exc:
+        # Same rationale as compute_insights above: log the real detail,
+        # keep the API-facing field generic.
+        logger.warning("AI structured insights failed for %s: %s", client_id, exc)
         narrations = []
-        insights_error = str(exc)
+        insights_error = "AI insights unavailable, please retry."
 
-    # If Gemini didn't narrate a given fact (whole call failed, or that
+    # If the AI didn't narrate a given fact (whole call failed, or that
     # fact's id was missing/mismatched in its response), fall back to a
     # plain deterministic title/description templated from the fact's own
     # real numbers — the Cards view stays useful even with zero AI

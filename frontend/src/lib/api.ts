@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+// Falls back to the project's standardized local dev port (see README) only
+// if VITE_API_BASE_URL is somehow entirely unset — every real setup should
+// have it defined via frontend/.env (copied from .env.example).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8010"
 
 export class ApiError extends Error {
   status: number
@@ -87,9 +90,10 @@ export type InsightsResponse = {
   as_of: string
   analysis: Omit<AnalysisResponse, "client_id" | "market_data_source" | "as_of">
   recommendations: TradeRecommendation[]
-  // Null when Gemini failed (e.g. rate limit) — the deterministic
-  // recommendations above are still valid and shown regardless; only the
-  // narrative is missing. See App Flow doc's Gemini error state.
+  // Null when the AI narration call failed (e.g. rate limit) — the
+  // deterministic recommendations above are still valid and shown
+  // regardless; only the narrative is missing. See App Flow doc's AI
+  // error state.
   narrative: string | null
   narrative_error: string | null
 }
@@ -136,9 +140,9 @@ export type ComplianceFlag = {
   severity: "high" | "medium" | "low"
   category: string
   message: string
-  // Gemini's plain-language explanation of this flag's own real numbers
-  // (services/gemini_client.py's narrate_compliance_flags) — null for the
-  // 2 fixed disclosure lines (never narrated) and whenever Gemini itself
+  // The AI's plain-language explanation of this flag's own real numbers
+  // (services/groq_client.py's narrate_compliance_flags) — null for the
+  // 2 fixed disclosure lines (never narrated) and whenever the AI itself
   // is unavailable, in which case `message` is still shown on its own.
   narrative: string | null
 }

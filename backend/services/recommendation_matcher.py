@@ -5,7 +5,7 @@ their risk profile's strategy (strategies.json) and produces structured
 trade suggestions to correct any bucket whose drift exceeds that strategy's
 own rebalancing_threshold_pct. Pure arithmetic only — same as optimizer.py
 and scenario_simulator.py. No AI/LLM is involved anywhere in this file.
-gemini_client.py (wired in via /insights) only narrates the suggestions this
+groq_client.py (wired in via /insights) only narrates the suggestions this
 file already computed; it never generates or adjusts them.
 
 Rebalance-to-target methodology: once a bucket's drift exceeds the

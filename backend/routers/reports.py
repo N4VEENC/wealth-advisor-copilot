@@ -1,6 +1,6 @@
 """POST /clients/{id}/reports, GET /reports/{id}, PATCH /reports/{id}/approve.
 
-Assembles a shareable report from the same deterministic + Gemini pipeline
+Assembles a shareable report from the same deterministic + AI pipeline
 as /insights (services/insights_service.py), plus an illustrative
 current-vs-target growth projection (services/projection.py). Reports start
 at status "draft" and are not final/shareable until explicitly approved via
@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services import audit_log, compliance, gemini_client, projection
+from services import audit_log, compliance, groq_client, projection
 from services.client_store import ClientNotFoundError, StrategyNotFoundError
 from services.insights_service import compute_deterministic_analysis
 from services.market_data_service import MarketDataUnavailableError
@@ -94,23 +94,23 @@ def generate_report(client_id: str, payload: GenerateReportRequest | None = None
     )
     compliance_flags = [flag for flag in all_flags if flag["category"] != "disclosure"]
 
-    # The report needs two independent Gemini calls — the main narrative and
+    # The report needs two independent AI calls — the main narrative and
     # the compliance-flag narration — neither of which depends on the
     # other's output, only on the deterministic analysis/recommendations
     # already computed above. Firing them concurrently instead of one after
     # the other roughly halves the AI-call portion of report generation's
-    # latency (measured ~1.2-1.4s per real Gemini round-trip in this repo,
+    # latency (measured ~1.2-1.4s per real AI round-trip in this repo,
     # so two sequential calls cost ~2.5s+ versus ~1.3s run together).
     with ThreadPoolExecutor(max_workers=2) as pool:
         narrative_future = pool.submit(
-            gemini_client.generate_narrative, analysis=analysis, recommendations=result["recommendations"]
+            groq_client.generate_narrative, analysis=analysis, recommendations=result["recommendations"]
         )
-        compliance_future = pool.submit(gemini_client.narrate_compliance_flags, compliance_flags)
+        compliance_future = pool.submit(groq_client.narrate_compliance_flags, compliance_flags)
 
         try:
             narrative = narrative_future.result()
             narrative_error = None
-        except gemini_client.GeminiError as exc:
+        except groq_client.GroqError as exc:
             narrative = None
             narrative_error = str(exc)
         compliance_flags = compliance_future.result()
@@ -118,9 +118,12 @@ def generate_report(client_id: str, payload: GenerateReportRequest | None = None
     if narrative is None:
         # Unlike the Dashboard's /insights endpoint, a client-facing report
         # is not useful without its narrative, so this is the one place
-        # that still turns a Gemini failure into a hard error.
-        logger.error("Gemini narrative failed for %s: %s", client_id, narrative_error)
-        raise HTTPException(status_code=503, detail=f"AI insights unavailable: {narrative_error}")
+        # that still turns an AI-narration failure into a hard error. The
+        # real exception (narrative_error, which can carry raw provider/HTTP
+        # detail) is logged here for debugging — the advisor only ever sees
+        # a generic message, never the provider name or raw error text.
+        logger.error("AI narrative generation failed for %s: %s", client_id, narrative_error)
+        raise HTTPException(status_code=503, detail="Something went wrong generating this report, please try again.")
 
     # See module docstring: this import only happens when an advisor has
     # actually opted in to attaching notes — the default (empty) case never

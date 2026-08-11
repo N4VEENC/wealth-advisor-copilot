@@ -38,7 +38,7 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [noHoldings, setNoHoldings] = useState(false)
   // Insights (AI narrative + recommendations) is fetched independently of
-  // the deterministic calls below — a pure Gemini failure is already
+  // the deterministic calls below — a pure AI narration failure is already
   // tolerated inside postInsights itself (narrative comes back null,
   // RecommendationsCard shows its own "insights unavailable" message), but
   // a total fetch failure (network, market-data-inside-insights, etc.) must

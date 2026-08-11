@@ -4,10 +4,10 @@ Note: no login/auth phase is needed for this version (see PRD/TRD — auth is ex
 
 ## Phase 1: Setup
 - Initialize project repo, folder structure exactly as defined in the TRD (`backend/`, `frontend/`)
-- Backend: create Python 3.11 virtual environment, install `fastapi`, `uvicorn`, `pandas`, `numpy`, `scipy`, `yfinance`, Gemini SDK, `python-multipart`, `python-dotenv`; create `.env` with `GEMINI_API_KEY` and `FINNHUB_API_KEY`
+- Backend: create Python 3.11 virtual environment, install `fastapi`, `uvicorn`, `pandas`, `numpy`, `scipy`, `yfinance`, Groq SDK, `python-multipart`, `python-dotenv`; create `.env` with `GROQ_API_KEY` and `FINNHUB_API_KEY`
 - Frontend: scaffold Vite + React project, install Tailwind, shadcn/ui (connect shadcn MCP if available), `lucide-react`
 - Confirm both servers boot with a simple health-check endpoint/page before writing any feature code
-- **Done when:** `uvicorn` backend responds on `localhost:8000/health`, and `npm run dev` frontend loads a blank page on `localhost:5173`, with no errors in either terminal
+- **Done when:** `uvicorn` backend responds on `localhost:8010/health`, and `npm run dev` frontend loads a blank page on `localhost:5173`, with no errors in either terminal
 
 ## Phase 2: Data Layer (replaces "Database" phase — see note above)
 - Implement the JSON file storage structure from the Backend Schema doc: `clients/index.json`, per-client files, `strategies.json`, `audit_log.json`, `reports/`
@@ -31,11 +31,11 @@ Note: no login/auth phase is needed for this version (see PRD/TRD — auth is ex
 - Wire into `POST /clients/{id}/scenario`
 - **Done when:** each of the three preset scenario chips produces a distinct, directionally sensible projected impact for the demo client
 
-## Phase 6: Core Feature 3 — Recommendation Matcher + Gemini Orchestration
+## Phase 6: Core Feature 3 — Recommendation Matcher + Groq Orchestration
 - Implement `recommendation_matcher.py`: compares current allocation/drift against the strategy library and produces structured trade suggestions (ticker, action, quantity, account, estimated tax impact)
-- Implement `gemini_client.py`: sends the deterministic outputs from Phases 4–6 to Gemini, prompted to explain/narrate only — never to invent its own numbers — and returns plain-language insight text
+- Implement `groq_client.py`: sends the deterministic outputs from Phases 4–6 to Groq, prompted to explain/narrate only — never to invent its own numbers — and returns plain-language insight text
 - Wire into `POST /clients/{id}/insights`
-- **Done when:** a real end-to-end call (holdings → analysis → scenario → recommendations → Gemini narrative) works via curl/Postman with no manual data faked at any step
+- **Done when:** a real end-to-end call (holdings → analysis → scenario → recommendations → Groq narrative) works via curl/Postman with no manual data faked at any step
 
 ## Phase 7: Compliance & Reporting
 - Every call to the insights/recommendation endpoints appends one entry to `audit_log.json`, per the Backend Schema shape
@@ -51,24 +51,24 @@ Note: no login/auth phase is needed for this version (see PRD/TRD — auth is ex
 - **Done when:** the running app on `localhost` visually matches the mockup and every number/chart on screen is real data from the backend, not hardcoded
 
 ## Phase 9: UI Polish
-- Loading states for market data fetch, Gemini call, and report generation (these can take a few seconds — must not look frozen)
+- Loading states for market data fetch, Groq call, and report generation (these can take a few seconds — must not look frozen)
 - Empty states (no clients yet, no holdings uploaded yet, no reports yet) per App Flow doc
-- Error states (upload column mismatch, market data fallback notice, Gemini failure notice) per App Flow doc
+- Error states (upload column mismatch, market data fallback notice, Groq failure notice) per App Flow doc
 - Responsive check at mobile width — sidebar collapses gracefully
 - **Done when:** every empty/error/loading state listed in the App Flow doc has been manually triggered and looks intentional, not broken
 
 ## Phase 10: Testing
 - Manually walk through Core User Journey 1 (full analysis-to-report cycle) and Core User Journey 2 (new client onboarding) end to end, on `localhost`, using real API calls (no mocks)
-- Fix any edge cases found: malformed Excel uploads, a client with zero holdings, Finnhub down, Gemini timeout
+- Fix any edge cases found: malformed Excel uploads, a client with zero holdings, Finnhub down, Groq timeout
 - Confirm audit log entries are actually being written and are readable
 - **Done when:** both journeys complete without manual data patching or console errors
 
 ## Phase 11: Deploy
 - Push finished, working local project to a GitHub repository (advisor's own `git push`, at the advisor's discretion — not automated)
-- Deploy backend to Render or Railway; set `GEMINI_API_KEY` and `FINNHUB_API_KEY` as environment variables there (never committed to the repo)
+- Deploy backend to Render or Railway; set `GROQ_API_KEY` and `FINNHUB_API_KEY` as environment variables there (never committed to the repo)
 - Deploy frontend to Vercel or Netlify; set `VITE_API_BASE_URL` to the deployed backend's URL
 - Confirm CORS is enabled on the backend for the deployed frontend's origin
 - **Done when:** the deployed Vercel/Netlify link works standalone, with no `localhost` dependency, and produces the same real, live results as the local version
 
 ## Overall Done Criteria
-All 9 success metrics from the PRD are met: sub-15-minute report generation, demonstrable time savings over manual analysis, risk/goal-aligned recommendations, a working live data integration (Finnhub/yfinance + Gemini), full compliance/audit logging, a mandatory human-in-the-loop approval gate before any report is considered final, and the whole system running correctly both on `localhost` and on its final deployed link.
+All 9 success metrics from the PRD are met: sub-15-minute report generation, demonstrable time savings over manual analysis, risk/goal-aligned recommendations, a working live data integration (Finnhub/yfinance + Groq), full compliance/audit logging, a mandatory human-in-the-loop approval gate before any report is considered final, and the whole system running correctly both on `localhost` and on its final deployed link.

@@ -1,10 +1,10 @@
-"""Builds the "insight facts" list that gemini_client.py's structured Cards
+"""Builds the "insight facts" list that groq_client.py's structured Cards
 narration is allowed to describe (see POST /clients/{id}/insights/cards).
 
 Every number in every fact here is already computed elsewhere in this
 codebase (optimizer.py, sector_classification.py, recommendation_matcher.py)
 — this module's only job is to package them and assign a *deterministic*
-severity and tag, so Gemini never has any influence over severity, tags, or
+severity and tag, so the AI never has any influence over severity, tags, or
 any number: it only ever writes a title + one-paragraph description for a
 fact it's handed, using nothing but that fact's own "numbers" dict.
 """

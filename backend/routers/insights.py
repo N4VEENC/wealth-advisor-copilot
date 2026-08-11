@@ -1,8 +1,8 @@
-"""POST /clients/{id}/insights — Gemini-narrated plain-language insight,
+"""POST /clients/{id}/insights — AI-narrated plain-language insight,
 plus an append-only compliance/audit-log entry for this recommendation
 generation event (Backend Schema doc).
 
-Runs the shared optimizer -> recommendation_matcher -> gemini_client
+Runs the shared optimizer -> recommendation_matcher -> groq_client
 pipeline (services/insights_service.py), then records exactly which
 deterministic numbers and which strategy fed the AI narrative into
 backend/data/audit_log.json.
@@ -24,7 +24,7 @@ router = APIRouter()
 
 
 def _summarize_narrative(narrative: str, max_len: int = 220) -> str:
-    """Deterministic truncation of Gemini's own narrative text for the audit
+    """Deterministic truncation of the AI's own narrative text for the audit
     log's ai_output_summary field — NOT a second AI call, just plain string
     handling. Takes the first sentence if it's short enough, otherwise a
     character-capped truncation."""
@@ -51,9 +51,6 @@ def generate_insights(client_id: str) -> dict:
     analysis = result["analysis"]
     narrative = result["narrative"]
     narrative_error = result["narrative_error"]
-
-    if narrative_error:
-        logger.error("Gemini narrative failed for %s: %s", client_id, narrative_error)
 
     # Recommendations are deterministic and were already computed even if
     # narration failed, so the audit trail still records this event — the
@@ -95,7 +92,7 @@ def generate_insights(client_id: str) -> dict:
 def generate_structured_insights(client_id: str) -> dict:
     """Lazy-loaded by the frontend only when the advisor opens the AI
     recommendations panel's "Cards" tab — not fetched on every dashboard
-    load, since it costs a second Gemini call beyond POST /insights. See
+    load, since it costs a second AI call beyond POST /insights. See
     services/insights_service.py's compute_structured_insights."""
     try:
         result = compute_structured_insights(client_id)
@@ -107,9 +104,6 @@ def generate_structured_insights(client_id: str) -> dict:
         raise HTTPException(status_code=503, detail=f"Market data unavailable: {exc}") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    if result["insights_error"]:
-        logger.error("Gemini structured insights failed for %s: %s", client_id, result["insights_error"])
 
     return {
         "client_id": client_id,

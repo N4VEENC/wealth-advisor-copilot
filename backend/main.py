@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,13 +16,22 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI(title="Wealth Advisor Copilot API")
 
 # The frontend (Vite dev server) runs on a different origin, so the browser
-# preflights every request. Local-dev-only origins for now; this will need
-# the deployed frontend's origin added when Phase 11 (Deploy) happens.
+# preflights every request. Self-hosters set ALLOWED_ORIGINS in backend/.env
+# (comma-separated real origins, e.g. their deployed frontend's URL) once
+# they're ready to deploy — see .env.example. Left unset (the default for
+# local dev, zero configuration needed), fall back to matching any
+# localhost port: Vite auto-increments its port (5174, 5175, ...) whenever
+# 5173 is already taken, so a single hardcoded origin would break the
+# moment that happens.
+_allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+_cors_kwargs = (
+    {"allow_origins": _allowed_origins} if _allowed_origins else {"allow_origin_regex": r"http://localhost:\d+"}
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
+    **_cors_kwargs,
 )
 
 app.include_router(clients.router)

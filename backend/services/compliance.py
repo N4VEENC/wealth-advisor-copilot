@@ -1,7 +1,7 @@
 """Rules-based (deterministic, no AI) compliance checker.
 
 Every flag here is produced by a fixed rule against real portfolio/lot data
-— nothing here is generated, judged, or worded by Gemini. This mirrors the
+— nothing here is generated, judged, or worded by the AI. This mirrors the
 same "AI never invents numbers" architecture as optimizer.py /
 scenario_simulator.py / recommendation_matcher.py / projection.py.
 """

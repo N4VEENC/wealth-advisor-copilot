@@ -4,8 +4,8 @@ Given a client's current holdings, cash balance, and live prices, projects
 the impact of a market scenario on total portfolio value. Like optimizer.py,
 this is pure arithmetic against documented, illustrative shock assumptions —
 it is NOT a real forecast, statistical model, or Monte Carlo simulation. No
-AI generates these numbers; wherever Gemini is involved (routers/scenarios.py
-uses it only as a free-text CLASSIFIER — see gemini_client.classify_scenario
+AI generates these numbers; wherever the AI is involved (routers/scenarios.py
+uses it only as a free-text CLASSIFIER — see groq_client.classify_scenario
 — to pick which of the archetypes below best matches a client's question),
 it never invents a magnitude or adjusts a result computed here.
 
@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
-from services import gemini_client, sector_classification
+from services import groq_client, sector_classification
 from services.holdings import total_quantity
 from services.optimizer import classify_asset_class
 
@@ -580,9 +580,9 @@ SCENARIOS: dict[str, dict[str, Any]] = {
 # --- Free-text routing (non-AI baseline) --------------------------------------
 # Basic keyword matching, NOT true NLP interpretation — a deterministic
 # fallback for when the free-text scenario box is used directly against this
-# module (e.g. tests, or if Gemini is unavailable). The real free-text
+# module (e.g. tests, or if the AI provider is unavailable). The real free-text
 # understanding path is routers/scenarios.py calling
-# gemini_client.classify_scenario, which selects one of this module's own
+# groq_client.classify_scenario, which selects one of this module's own
 # SCENARIOS ids (or "no_match") — it never invents a magnitude, and this
 # module has no AI dependency of its own.
 #
@@ -595,7 +595,7 @@ SCENARIOS: dict[str, dict[str, Any]] = {
 # describes rather than a generic one that merely shares a substring.
 # Dangerously generic bare words that are substrings of many unrelated
 # phrases (bare "crash", bare "war", bare "downturn") are deliberately left
-# OUT entirely — better to fall through to Gemini classification on an
+# OUT entirely — better to fall through to AI classification on an
 # ambiguous phrase than to confidently mis-route it here.
 _KEYWORD_ROUTES: list[tuple[str, tuple[str, ...]]] = [
     ("rate_hike_200bps", ("200bps", "200 bps", "two hundred basis", "big rate hike", "large rate hike")),
@@ -673,12 +673,12 @@ class UnrecognizedScenarioError(ValueError):
 def resolve_scenario_with_ai_fallback(scenario_input: str) -> str:
     """Resolve free text to a known scenario id, trying the deterministic
     path first (resolve_scenario_id: exact id/label match, then keyword
-    routing) and only calling Gemini/Groq as a pure classifier if that
-    genuinely can't match. Shared by routers/scenarios.py (the Scenario
-    Analysis card) and services/chat_service.py (the AI Chat panel's
-    run_scenario tool) so both entry points use the exact same resolution
-    order rather than each re-implementing it. Raises
-    UnrecognizedScenarioError if nothing matches even with AI help."""
+    routing) and only calling the AI as a pure classifier if that genuinely
+    can't match. Shared by routers/scenarios.py (the Scenario Analysis card)
+    and services/chat_service.py (the AI Chat panel's run_scenario tool) so
+    both entry points use the exact same resolution order rather than each
+    re-implementing it. Raises UnrecognizedScenarioError if nothing matches
+    even with AI help."""
     try:
         return resolve_scenario_id(scenario_input)
     except UnrecognizedScenarioError:
@@ -686,21 +686,24 @@ def resolve_scenario_with_ai_fallback(scenario_input: str) -> str:
 
     known_scenarios = [{"id": sid, "label": cfg["label"]} for sid, cfg in SCENARIOS.items()]
     try:
-        classified_id = gemini_client.classify_scenario(scenario_input, known_scenarios)
-    except gemini_client.GeminiError as exc:
-        logger.warning("Gemini scenario classification unavailable for '%s': %s", scenario_input, exc)
+        classified_id = groq_client.classify_scenario(scenario_input, known_scenarios)
+    except groq_client.GroqError as exc:
+        # Logged for debugging only — this failure is never surfaced to the
+        # advisor as anything other than a plain "no match" below, so no
+        # provider name or raw error detail ever reaches their screen.
+        logger.warning("Groq scenario classification unavailable for '%s': %s", scenario_input, exc)
         classified_id = None
 
     # Defensive: only trust a classified id if it's actually one of the
     # real, known scenarios — an LLM can still hallucinate a plausible-
     # looking id outside the given list despite being told not to.
     if classified_id is not None and classified_id in SCENARIOS:
-        logger.info("Gemini classified free-text scenario '%s' as '%s'.", scenario_input, classified_id)
+        logger.info("Groq classified free-text scenario '%s' as '%s'.", scenario_input, classified_id)
         return classified_id
 
     raise UnrecognizedScenarioError(
         f"Could not match scenario '{scenario_input}' to any known preset — tried exact match, "
-        "keyword routing, and Gemini classification."
+        "keyword routing, and AI-assisted classification."
     )
 
 
@@ -713,7 +716,7 @@ def resolve_scenario_id(scenario_input: str) -> str:
     the order above, so more specific phrases like "200bps" are tried before
     the more general "rate hike"). Raises UnrecognizedScenarioError if
     nothing matches either way — the caller (routers/scenarios.py) tries
-    Gemini classification before giving up entirely.
+    AI classification before giving up entirely.
     """
     normalized = scenario_input.strip().lower()
 
@@ -740,7 +743,7 @@ def simulate_scenario(
 
     `scenario_input` must already be a resolved scenario id (e.g.
     "recession") — routers/scenarios.py resolves free text to an id (via
-    resolve_scenario_id's keyword fallback, or gemini_client.classify_scenario)
+    resolve_scenario_id's keyword fallback, or groq_client.classify_scenario)
     before calling this. Raises UnrecognizedScenarioError if `scenario_input`
     isn't a known id, or ValueError if a holding's ticker has no matching
     live price.

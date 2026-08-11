@@ -35,10 +35,10 @@ function FlagRow({ flag }: { flag: ComplianceFlag }) {
       />
       <div className="flex min-w-0 flex-col gap-px">
         <span className="text-[12px] font-medium text-foreground">{CATEGORY_TITLE[flag.category] ?? flag.category}</span>
-        {/* Gemini's plain-language narration of this flag's own real
+        {/* The AI's plain-language narration of this flag's own real
             numbers, falling back to the raw deterministic message
             whenever narration is unavailable (e.g. AI rate-limited) —
-            the flag itself never depends on Gemini to be shown. Either
+            the flag itself never depends on the AI to be shown. Either
             way the text may embed a real USD figure (e.g. a wash-sale
             loss amount), so it always goes through the same
             currency-mention conversion as everywhere else. */}

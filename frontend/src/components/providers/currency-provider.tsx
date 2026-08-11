@@ -26,7 +26,7 @@ export const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> =
 // before the real rates have loaded, or if they never do — every figure
 // still renders correctly labeled as USD-equivalent rather than blocking
 // the whole app on a network call, matching this app's "never block on an
-// external call" pattern used for market data and Gemini elsewhere.
+// external call" pattern used for market data and the AI elsewhere.
 const IDENTITY_RATES: Record<Currency, number> = { USD: 1, EUR: 1, GBP: 1, INR: 1, JPY: 1 }
 
 type CurrencyContextValue = {
@@ -44,7 +44,7 @@ type CurrencyContextValue = {
   formatCurrencyPrecise: (usdAmount: number) => string
   formatCompactCurrency: (usdAmount: number) => string
   formatSignedCurrency: (usdAmount: number) => string
-  /** For already-generated prose (Gemini narrative/Cards text, or a
+  /** For already-generated prose (AI narrative/Cards text, or a
    * deterministic trade note) that embeds "$1,234.56"-style USD mentions
    * directly in the string — see lib/format.ts's
    * convertCurrencyMentionsInText for why this rewrites rather than
@@ -72,7 +72,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         // down) — fall back to identity rather than leaving every dollar
         // figure blank; still clearly labeled via ratesSource so a
         // component COULD surface it, same graceful-degradation spirit as
-        // a missing Gemini narrative elsewhere in this app.
+        // a missing AI narrative elsewhere in this app.
         if (!cancelled) setRatesSource("unavailable")
       })
     return () => {

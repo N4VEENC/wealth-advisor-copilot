@@ -15,7 +15,7 @@
 - `numpy` — portfolio math (allocation %, weighted averages)
 - `scipy` (as needed) — any distributional/statistical calculations for scenario modeling
 - `yfinance` — fallback market data source, no API key required
-- Google Gemini Python SDK — AI orchestration layer only (never generates the numbers itself)
+- Groq Python SDK — AI orchestration layer only (never generates the numbers itself)
 - Runs locally via `uvicorn` on `localhost` during development
 
 ## Database
@@ -31,23 +31,21 @@
 - None for this version (single local advisor session, no login screen). Explicitly out of scope per PRD.
 
 ## Hosting and Deployment
-- Local development: both servers run on `localhost` (backend typically `:8000`, frontend typically `:5173` via Vite) during the entire build phase
+- Local development: both servers run on `localhost` (backend standardized on `:8010`, frontend typically `:5173` via Vite) during the entire build phase — see the root README for the exact commands
 - Final deployment (after local build is complete and pushed to GitHub):
   - Frontend → Vercel or Netlify (static hosting)
   - Backend → Render or Railway (needs to stay running, hold API keys server-side, and read/write local JSON files)
-  - Frontend's backend API base URL supplied via an environment variable, swapped between local (`http://localhost:8000`) and the deployed backend URL
+  - Frontend's backend API base URL supplied via an environment variable (`VITE_API_BASE_URL`), swapped between local (`http://localhost:8010`) and the deployed backend URL
 
 ## Third-Party APIs and Services
 | Name | Purpose | Tier |
 |---|---|---|
-| Google Gemini API (Gemini 2.5 Flash, via Google AI Studio — see implementation note under Key Libraries; build actually uses the `gemini-flash-latest` alias) | AI reasoning/orchestration — turns calculated numbers into plain-language insight, never generates numbers itself | Free (~1,500 requests/day) |
+| Groq API (llama-3.3-70b-versatile) | AI reasoning/orchestration — turns calculated numbers into plain-language insight, never generates numbers itself | Free tier |
 | Finnhub | Primary live market data (real-time prices) | Free (60 requests/min) |
 | yfinance (Python library) | Fallback market data if Finnhub is rate-limited | Free, no key needed |
 
 ## Key Libraries
-- Backend: `fastapi`, `uvicorn`, `pandas`, `numpy`, `scipy`, `yfinance`, `google-genai` (see implementation note below), `python-multipart` (for file upload), `python-dotenv`
-
-> **Implementation note (added during Phase 6 build, 2026-08-03):** `google-generativeai`, the package originally anticipated here, is now fully deprecated upstream ("all support has ended, switch to `google.genai`"). The build uses the maintained `google-genai` SDK instead. Likewise, the model named below (`gemini-2.5-flash`) returned HTTP 404 ("no longer available to new users") for a freshly-issued API key — the build uses the `gemini-flash-latest` alias instead, which always resolves to the current recommended flash-tier model. If you're reading this well after 2026, re-check both the SDK package and model name before assuming either still applies.
+- Backend: `fastapi`, `uvicorn`, `pandas`, `numpy`, `scipy`, `yfinance`, `groq`, `python-multipart` (for file upload), `python-dotenv`
 - Frontend: `react`, `shadcn/ui` components, `tailwindcss`, `lucide-react` (icons)
 
 ## Folder Structure
@@ -59,7 +57,7 @@ wealth-advisor-copilot/
 │   │   ├── clients.py
 │   │   ├── portfolio.py
 │   │   ├── market_data.py
-│   │   ├── insights.py        (Gemini orchestration)
+│   │   ├── insights.py        (Groq orchestration)
 │   │   ├── scenarios.py
 │   │   ├── reports.py
 │   │   └── compliance.py
@@ -70,13 +68,13 @@ wealth-advisor-copilot/
 │   │   ├── recommendation_matcher.py
 │   │   ├── finnhub_client.py
 │   │   ├── yfinance_client.py
-│   │   └── gemini_client.py
+│   │   └── groq_client.py
 │   ├── data/
 │   │   ├── clients/
 │   │   ├── strategies.json
 │   │   ├── audit_log.json
 │   │   └── reports/
-│   ├── .env                    (GEMINI_API_KEY, FINNHUB_API_KEY — never committed)
+│   ├── .env                    (GROQ_API_KEY, FINNHUB_API_KEY — never committed)
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
@@ -91,12 +89,12 @@ wealth-advisor-copilot/
 ```
 
 ## Environment Variables
-- `GEMINI_API_KEY` (backend)
+- `GROQ_API_KEY` (backend)
 - `FINNHUB_API_KEY` (backend)
 - `VITE_API_BASE_URL` (frontend — points to backend, local or deployed)
 
 ## Hard Constraints / Preferences
-- The AI (Gemini) must never generate the actual financial numbers (returns, Sharpe ratio, allocation %, projected values) — those must always come from deterministic backend functions. Gemini only explains/synthesizes what those functions already calculated.
+- The AI (Groq) must never generate the actual financial numbers (returns, Sharpe ratio, allocation %, projected values) — those must always come from deterministic backend functions. Groq only explains/synthesizes what those functions already calculated.
 - Must run fully locally on `localhost` before any deployment step is attempted.
 - No real trade execution, no real brokerage integration, no real user auth — see PRD "Out of Scope."
 - All demo data must be clearly and visibly labeled as fictional/illustrative in the UI (this was already present in the mockup's footer disclosure text and must be preserved).

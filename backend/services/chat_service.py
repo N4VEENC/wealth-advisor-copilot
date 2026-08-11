@@ -8,7 +8,7 @@ the exact same functions the Dashboard's own cards call). The model can only
 state a figure that came back from one of those tool calls; if no tool
 answers the question, the system instruction requires it to say so rather
 than guess. This is the identical "AI narrates, never invents" split used
-throughout the rest of this app (see gemini_client.py) applied to a
+throughout the rest of this app (see groq_client.py) applied to a
 conversational, multi-turn tool-calling loop instead of a single narration
 call.
 
@@ -38,7 +38,7 @@ from typing import Any, Callable, Iterator
 
 from database import session_scope
 from models import ChatMessage, ChatState
-from services import compliance, gemini_client, insights_service, projection, scenario_simulator, sector_classification
+from services import compliance, groq_client, insights_service, projection, scenario_simulator, sector_classification
 from services.holdings import total_quantity
 
 logger = logging.getLogger(__name__)
@@ -397,14 +397,14 @@ def _run_verified_turn_stream(client_id: str, history_messages: list[dict[str, A
     event. `history_messages` already includes the just-appended user
     message as its last entry.
 
-    Raises gemini_client.GeminiError on a Groq failure, ValueError if the
+    Raises groq_client.GroqError on an AI-provider failure, ValueError if the
     client has no holdings/live prices (compute_deterministic_analysis) —
     both caught by the caller and turned into an 'error' stream event.
     """
     base = insights_service.compute_deterministic_analysis(client_id)
     tool_fns = _build_tool_fns(base)
 
-    groq_client = gemini_client.get_groq_client()
+    client = groq_client.get_groq_client()
     groq_messages: list[dict[str, Any]] = [{"role": "system", "content": _VERIFIED_SYSTEM_INSTRUCTION}]
     groq_messages.extend(_history_as_groq_messages(history_messages))
 
@@ -421,14 +421,14 @@ def _run_verified_turn_stream(client_id: str, history_messages: list[dict[str, A
 
     for _ in range(MAX_TOOL_ITERATIONS):
         create_kwargs: dict[str, Any] = {
-            "model": gemini_client.MODEL_NAME,
+            "model": groq_client.MODEL_NAME,
             "messages": groq_messages,
             "temperature": 0.2,
         }
         if not force_finalize:
             create_kwargs["tools"] = TOOLS_SPEC
             create_kwargs["tool_choice"] = "auto"
-        response = groq_client.chat.completions.create(**create_kwargs)
+        response = client.chat.completions.create(**create_kwargs)
         message = response.choices[0].message
 
         if not message.tool_calls:
@@ -465,7 +465,7 @@ def _run_verified_turn_stream(client_id: str, history_messages: list[dict[str, A
                 args = json.loads(tool_call.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
-            # Groq (like some OpenAI-compatible models) sometimes returns the
+            # The AI provider (like some OpenAI-compatible APIs) sometimes returns the
             # literal string "null" — not "{}" — for a tool with no
             # parameters, which json.loads happily turns into Python None
             # rather than raising. fn(**None) would then blow up on every
@@ -539,10 +539,10 @@ def _build_exploratory_context_block(client_id: str) -> str:
 def _run_exploratory_turn(client_id: str, chat_state: dict[str, Any], history_messages: list[dict[str, Any]]) -> str:
     """Injects the one-time real context block into `chat_state` (mutated in
     place) if this conversation hasn't captured one yet, then runs a single
-    free-form Groq completion — no tool-calling loop, per the module
+    free-form AI completion — no tool-calling loop, per the module
     docstring's Exploratory-mode design. The caller persists `chat_state`
     only after this returns successfully (see stream_chat_turn) — if the
-    Groq call below fails, the injection captured here is deliberately
+    AI call below fails, the injection captured here is deliberately
     discarded so the next attempt captures a fresh snapshot instead of
     reusing one that was never actually used in a real reply."""
     if not chat_state.get("exploratory_context_injected"):
@@ -550,7 +550,7 @@ def _run_exploratory_turn(client_id: str, chat_state: dict[str, Any], history_me
         chat_state["exploratory_context_captured_at"] = _now_iso()
         chat_state["exploratory_context_injected"] = True
 
-    groq_client = gemini_client.get_groq_client()
+    client = groq_client.get_groq_client()
     groq_messages: list[dict[str, Any]] = [{"role": "system", "content": _EXPLORATORY_SYSTEM_INSTRUCTION}]
     if chat_state.get("exploratory_context"):
         groq_messages.append(
@@ -564,7 +564,7 @@ def _run_exploratory_turn(client_id: str, chat_state: dict[str, Any], history_me
         )
     groq_messages.extend(_history_as_groq_messages(history_messages))
 
-    response = groq_client.chat.completions.create(model=gemini_client.MODEL_NAME, messages=groq_messages)
+    response = client.chat.completions.create(model=groq_client.MODEL_NAME, messages=groq_messages)
     return response.choices[0].message.content or "I don't have anything to add on that."
 
 
@@ -611,9 +611,12 @@ def stream_chat_turn(client_id: str, message: str, mode: str) -> Iterator[str]:
             content = _run_exploratory_turn(client_id, chat_state, turn_messages)
             _save_chat_state(client_id, chat_state)
             tools_used = []
-    except Exception as exc:  # noqa: BLE001 - any failure here (Groq error, no holdings, etc.) becomes a visible chat error, never a fabricated reply
+    except Exception as exc:  # noqa: BLE001 - any failure here (AI-provider error, no holdings, etc.) becomes a visible chat error, never a fabricated reply
+        # The real exception (which can carry raw provider/HTTP detail) is
+        # logged here for debugging only — the advisor's screen only ever
+        # gets a generic message, never the provider name or raw error text.
         logger.warning("Chat turn failed for %s (mode=%s): %s", client_id, mode, exc)
-        yield json.dumps({"type": "error", "detail": str(exc)}) + "\n"
+        yield json.dumps({"type": "error", "detail": "Something went wrong processing that message, please try again."}) + "\n"
         return
 
     assistant_message = {

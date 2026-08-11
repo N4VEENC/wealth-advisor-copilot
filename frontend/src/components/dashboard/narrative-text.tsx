@@ -1,7 +1,7 @@
 /**
- * Minimal renderer for Gemini's narrative text: splits into paragraphs/lists
+ * Minimal renderer for the AI's narrative text: splits into paragraphs/lists
  * and renders **bold** spans. Deliberately not a full markdown library —
- * Gemini's output here only ever uses these two conventions, and this is
+ * the AI's output here only ever uses these two conventions, and this is
  * just enough to avoid showing literal asterisks to the advisor.
  */
 function renderInline(text: string, keyPrefix: string) {
@@ -39,7 +39,7 @@ export function NarrativeText({ text }: { text: string }) {
           )
         }
 
-        // Gemini occasionally prefixes a block with markdown heading hashes
+        // The AI occasionally prefixes a block with markdown heading hashes
         // even though the system prompt only asks for plain paragraphs —
         // strip them rather than showing literal "###" to the advisor.
         const heading = lines[0]?.match(/^#{1,6}\s+(.*)$/)

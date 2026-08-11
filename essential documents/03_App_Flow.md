@@ -52,7 +52,7 @@ None — out of scope for this version. App opens directly to the client list; n
 ## Error States
 - Excel upload with unrecognized/missing required columns: clear inline message naming which columns are missing, does not silently fail
 - Finnhub rate-limited or unreachable: falls back to yfinance automatically; if both fail, dashboard shows a "market data temporarily unavailable, showing last known prices" notice rather than crashing
-- Gemini API call fails/times out: dashboard still shows all deterministic numbers (scores, charts, tables) — only the plain-language AI narrative section shows a "insights unavailable, please retry" message; the app must never block on the AI call
+- Groq API call fails/times out: dashboard still shows all deterministic numbers (scores, charts, tables) — only the plain-language AI narrative section shows a "insights unavailable, please retry" message; the app must never block on the AI call
 
 ## Modal / Drawer / Overlay Interactions
 - Add new client: modal form (name, risk tolerance, goal, target retirement year)

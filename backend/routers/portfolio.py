@@ -14,7 +14,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
-from services import compliance, gemini_client, holdings as holdings_service, optimizer, projection, recommendation_matcher, sector_classification
+from services import compliance, groq_client, holdings as holdings_service, optimizer, projection, recommendation_matcher, sector_classification
 from services.client_store import (
     ClientNotFoundError,
     StrategyNotFoundError,
@@ -231,9 +231,9 @@ def get_client_compliance(client_id: str) -> dict:
     """Rules-based compliance flags: single-position concentration,
     wash-sale risk (checked against real recommended trades + lot data),
     and standard disclosures. Every flag itself is decided deterministically
-    by services/compliance.py, never by Gemini; Gemini is only layered on
+    by services/compliance.py, never by the AI; the AI is only layered on
     top afterward to narrate each real (non-disclosure) flag in plain
-    language — see gemini_client.narrate_compliance_flags."""
+    language — see groq_client.narrate_compliance_flags."""
     client, result, prices, source = _load_and_analyze(client_id)
 
     try:
@@ -257,7 +257,7 @@ def get_client_compliance(client_id: str) -> dict:
         total_value=result["total_portfolio_value"],
         recommendations=recommendations,
     )
-    flags = gemini_client.narrate_compliance_flags(flags)
+    flags = groq_client.narrate_compliance_flags(flags)
 
     logger.info("Computed %d compliance flag(s) for %s.", len(flags), client_id)
 

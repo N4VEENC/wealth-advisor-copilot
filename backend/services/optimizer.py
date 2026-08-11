@@ -3,7 +3,7 @@
 Computes current allocation, drift vs. target, a diversification risk score,
 and an investment health score from a client's stored holdings, cash
 balance, live market prices, and target allocation. Pure arithmetic only —
-per the TRD's hard constraint, Gemini (or any AI) never generates these
+per the TRD's hard constraint, the AI never generates these
 numbers; it only explains/narrates them after the fact (see Phase 6).
 """
 from __future__ import annotations
