@@ -4,6 +4,11 @@ A self-hosted dashboard for a financial advisor to review a client's portfolio, 
 
 The core principle: the AI never invents a number. Every score, percentage, dollar figure, and recommended trade shown anywhere in this app comes from deterministic, auditable calculation in the backend. The AI's only job — in the Dashboard narrative, the AI Chat, and report generation — is to explain numbers that already exist. It is never asked to calculate, estimate, or produce a figure of its own, and the strict system prompts enforcing this are part of the code, not just a policy.
 
+> [!NOTE]
+> A live, view-only mockup of the interface is hosted here: **[wealth-advisor-copilot.netlify.app](https://wealth-advisor-copilot.netlify.app)**
+>
+> This is a static visual mockup only — it shows the intended design and layout, but nothing on it is functional: no real data, no live calculations, no AI. For the actual working application, clone this repository and run it yourself following the setup instructions below.
+
 ## Features
 
 - Portfolio analysis — real-time allocation vs. target, a diversification risk score, and an investment health score, computed from live holdings and live market prices.
