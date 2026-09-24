@@ -217,8 +217,12 @@ function buildReportBlocks(report: ReportSummary, client: ClientRecord, fmt: Rep
   const { formatCurrency, formatCompactCurrency, convertMentionsInText } = fmt
   const lastPoint = c.projection_chart_data?.[c.projection_chart_data.length - 1] ?? null
   const totalValue = c.total_portfolio_value ?? c.projection_chart_data?.[0]?.current_trajectory ?? null
+  // Same metric the Dashboard shows (a Monte Carlo probability, inherently
+  // 0-100%) — NOT trajectory ÷ goal_amount, which is an unbounded ratio
+  // that can wildly exceed 100% for any client whose portfolio already
+  // comfortably clears their goal amount.
   const fundingPct =
-    lastPoint && c.monte_carlo?.goal_amount ? lastPoint.target_trajectory / c.monte_carlo.goal_amount : null
+    c.monte_carlo?.probability_of_reaching_goal !== undefined ? c.monte_carlo.probability_of_reaching_goal : null
   const accountCount = c.value_by_account_type ? Object.keys(c.value_by_account_type).length : 1
   const generatedDate = new Date(report.generated_at)
   const yearsToGoal = client.goal_year - generatedDate.getFullYear()

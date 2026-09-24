@@ -75,7 +75,18 @@ Edit `backend/.env`:
 
 `frontend/.env`'s `VITE_API_BASE_URL` already defaults to `http://localhost:8010`, matching the standardized local backend port below — you shouldn't need to change it unless you deliberately run the backend on a different port.
 
-**3. Run both servers**
+**3. Initialize the local database**
+
+The app stores its SQLite database outside the project directory. Create the schema and import the included demo data once after installing dependencies:
+
+```powershell
+cd backend
+.\venv\Scripts\python.exe -m alembic upgrade head
+.\venv\Scripts\python.exe scripts\migrate_json_to_sqlite.py
+cd ..
+```
+
+**4. Run both servers**
 
 Two terminals, both from the project root:
 

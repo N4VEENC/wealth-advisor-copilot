@@ -67,13 +67,20 @@ def _cached(fn_name: str, payload: Any, compute: Callable[[], T]) -> T:
         return result
 
 
-# llama-3.3-70b-versatile: a solid, well-tested instruction-follower on
-# Groq's free tier, confirmed live against this app's actual key
-# (2026-08-06) for both plain narration and JSON-object mode. Groq
-# rotates/retires hosted models over time — if this one goes away, check
+# openai/gpt-oss-120b: llama-3.3-70b-versatile (used until 2026-08-19) was
+# fully retired by Groq — confirmed via a live 404 "model_not_found" from
+# this app's actual key, and absent entirely from a live GET
+# https://api.groq.com/openai/v1/models listing. Swapped to gpt-oss-120b,
+# confirmed live against this app's actual key (2026-08-19) for plain
+# narration, JSON-object mode, AND tool-calling (chat_service.py's
+# Verified-mode loop) — the widest capability check any model here has had.
+# It's a reasoning model: responses carry a separate `reasoning` field
+# alongside `content`; this app only ever reads `.content`, so the
+# reasoning trace never leaks into narration text. Groq rotates/retires
+# hosted models over time — if this one goes away too, check
 # https://console.groq.com/docs/models for what's currently served, or list
 # live via `GET https://api.groq.com/openai/v1/models` with the real key.
-MODEL_NAME = "llama-3.3-70b-versatile"
+MODEL_NAME = "openai/gpt-oss-120b"
 
 _SYSTEM_INSTRUCTION = """You are a financial-analysis narration assistant for a professional wealth advisor.
 
