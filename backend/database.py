@@ -1,9 +1,11 @@
 """SQLAlchemy engine/session setup for the app's SQLite database.
 
-The database file lives OUTSIDE this project directory, at
+The live database file lives OUTSIDE this project directory, at
 %LOCALAPPDATA%\\WealthAdvisorCopilot\\wealth_advisor.db (falls back to
-~/.wealth_advisor_copilot/wealth_advisor.db on non-Windows) — NOT at
-backend/data/wealth_advisor.db, despite that being the original plan.
+~/.wealth_advisor_copilot/wealth_advisor.db on non-Windows). On a fresh clone,
+backend/data/wealth_advisor_seed.db is copied here once to provide the same
+starting data without running SQLite inside the synced project directory.
+An existing local database is never overwritten.
 Reason: this project's directory lives inside OneDrive, and OneDrive's sync
 agent holds an OS-level lock on a file while uploading/rescanning it after
 every write, which collides with SQLite's own locking. Reproduced directly
@@ -26,6 +28,7 @@ models.py for the table definitions those modules query.
 from __future__ import annotations
 
 import os
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -36,6 +39,9 @@ from sqlalchemy.orm import Session, sessionmaker
 _APP_DATA_DIR = Path(os.environ["LOCALAPPDATA"]) / "WealthAdvisorCopilot" if os.name == "nt" else Path.home() / ".wealth_advisor_copilot"
 _APP_DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = _APP_DATA_DIR / "wealth_advisor.db"
+_SEED_DB_PATH = Path(__file__).resolve().parent / "data" / "wealth_advisor_seed.db"
+if not DB_PATH.exists() and _SEED_DB_PATH.is_file():
+    shutil.copy2(_SEED_DB_PATH, DB_PATH)
 
 # `timeout` is sqlite3's own busy-timeout (seconds): if a connection finds the
 # database locked by another connection's write, it retries for this long

@@ -7,10 +7,10 @@ backend/venv/
 .env.*
 !.env.example
 
-# Real client data (PII) and stale pre-SQLite artifacts — the live DB lives
-# outside the repo at %LOCALAPPDATA%\WealthAdvisorCopilot\wealth_advisor.db
-# (see backend/database.py). Nothing under backend/data/ is source of truth.
-backend/data/
+# Keep client JSON and local data ignored, but track the SQLite snapshot used
+# to initialize the database on a fresh clone (see backend/database.py).
+backend/data/*
+!backend/data/wealth_advisor_seed.db
 backend/data_backup_pre_sqlite_20260810/
 
 # Vite/build output
